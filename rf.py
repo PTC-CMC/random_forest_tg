@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import json
+import argparse
 
 from atools_ml.dataio import df_setup
 from atools_ml.descriptors import rdkit_descriptors
@@ -8,6 +9,7 @@ import numpy as np
 import pandas as pd
 import signac
 import scipy
+import pprint
 from sklearn import ensemble, linear_model, metrics, model_selection
 
 """
@@ -49,11 +51,11 @@ one above the current working directory. If these were placed elsewhere,
 the `path_to_data` string should be updated accordingly.
 """
 
-SMILES1 = 'C(=O)N'
-SMILES2 = 'O'
-random_seed = 43
-
-path_to_data = ".."
+#SMILES1 = 'C(=O)N'
+#SMILES2 = 'O'
+#random_seed = 43
+#
+#path_to_data = ".."
 
 """
 
@@ -67,12 +69,13 @@ corresponding clusters are provided in the `feature-cluster.json` file.
 
 """
 
-def predict(smiles1, smiles2, random_seed, path_to_data):
+def predict(SMILES1, SMILES2, random_seed=None, path_to_data="../", barcode_seed=None,
+        vary_descriptors=False, vary_significant=False, feature_cluster_json_location="./"):
 
     ch3_SMILES1 = 'C{}'.format(SMILES1)
     ch3_SMILES2 = 'C{}'.format(SMILES2)
 
-    with open('feature-clusters.json', 'r') as f:
+    with open(feature_cluster_json_location + 'feature-clusters.json', 'r') as f:
         clusters = json.load(f)
     shape_features = clusters['shape']
 
@@ -87,14 +90,22 @@ def predict(smiles1, smiles2, random_seed, path_to_data):
     to_drop = ['pc+-mean', 'pc+-min', 'pc--mean', 'pc--min']
 
     # Descriptors for H-terminated SMILES
-    desc_h_tg1 = rdkit_descriptors(SMILES1)
-    desc_h_tg2 = rdkit_descriptors(SMILES2)
+    desc_h_tg1 = rdkit_descriptors(SMILES1, vary_descriptors=vary_descriptors,
+            vary_significant=vary_significant, barcode_seed=barcode_seed)
+    desc_h_tg2 = rdkit_descriptors(SMILES2, vary_descriptors=vary_descriptors,
+            vary_significant=vary_significant, barcode_seed=barcode_seed)
 
     # Descriptors for CH3-terminated SMILES
     desc_ch3_tg1 = rdkit_descriptors(ch3_SMILES1, include_h_bond=True,
-                                     ch3_smiles=ch3_SMILES1)
+                                     ch3_smiles=ch3_SMILES1,
+                                     vary_descriptors=vary_descriptors,
+                                     vary_significant=vary_significant,
+                                     barcode_seed=barcode_seed)
     desc_ch3_tg2 = rdkit_descriptors(ch3_SMILES2, include_h_bond=True,
-                                     ch3_smiles=ch3_SMILES2)
+                                     ch3_smiles=ch3_SMILES2,
+                                     vary_descriptors=vary_descriptors,
+                                     vary_significant=vary_significant,
+                                     barcode_seed=barcode_seed)
 
     desc_h_df = pd.DataFrame([desc_h_tg1, desc_h_tg2])
     desc_ch3_df = pd.DataFrame([desc_ch3_tg1, desc_ch3_tg2])
@@ -177,7 +188,6 @@ def predict(smiles1, smiles2, random_seed, path_to_data):
 
     df = pd.concat([df_h_mean, df_h_min, df_ch3_mean, df_ch3_min,
                     df_ch3[identifiers + targets + ['hbonds']]], axis=1)
-
     # Reduce the number of features by running them through various filters
     features = list(df.drop(identifiers + targets, axis=1))
     df_red = dimensionality_reduction(df, features, filter_missing=True,
@@ -188,8 +198,11 @@ def predict(smiles1, smiles2, random_seed, path_to_data):
     df = df_red
     features = list(df.drop(identifiers + targets, axis=1))
     df_predict = df_predict.filter(features)
-
+    
+    prediction_results = dict()
     for target in ['COF', 'intercept']:
+        train_list = list()
+        test_list = list()
         X_train, X_test, y_train, y_test = model_selection.train_test_split(
                 df[features], df[target], test_size=0.2,
                 random_state=random_seed)
@@ -200,6 +213,100 @@ def predict(smiles1, smiles2, random_seed, path_to_data):
         regr.fit(X_train, y_train)
 
         predicted = regr.predict(np.array(df_predict).reshape(1, -1))
-        print('{} (predicted): {:.4f}'.format(target, predicted[0]))
+        prediction_results[target] = predicted[0]
+        prediction_results['R2'] = regr.score(X_train, y_train)
+        #print('{} (predicted): {:.4f}'.format(target, predicted[0]))
+    #prediction_results['']
 
-predict(SMILES1, SMILES2, random_seed, path_to_data)
+    model_train_test_split_df_list = []
+    test_list_test = []
+    test_list_sys = []
+    for ndx in X_test.index:
+        test_list.append((df.at[ndx, 'terminal_group_1'],
+                          df.at[ndx, 'terminal_group_2'],
+                          df.at[ndx, 'COF'],
+                          df.at[ndx, 'intercept']))
+
+        systems = str(df.at[ndx, 'terminal_group_1']) + " - " + str(df.at[ndx, 'terminal_group_2'])
+        test_list_test.append('Test')
+        test_list_sys.append(systems)
+
+        model_train_test_split_df_list.append({'Model {}'.format(random_seed): 'Test', 'System': systems,
+                                              'Terminal Group 1': df.at[ndx, 'terminal_group_1'],
+                                              'Terminal Group 2': df.at[ndx, 'terminal_group_2']})
+        
+        #for job in proj_mixed.find_job_documents({"COF": df.at[ndx, 'COF']}):
+        #    print('job is')
+        #    pprint.pprint(job)
+        #    print()
+    #model_train_test_split_df_list.append({'System': test_list_sys})
+    #model_train_test_split_df_list.append({'Model {}'.format(random_seed): test_list_test})
+
+    train_list_train = []
+    train_list_sys = []
+    for ndx in X_train.index:
+
+        train_list.append((df.at[ndx, 'terminal_group_1'],
+                           df.at[ndx, 'terminal_group_2'],
+                           df.at[ndx, 'COF'],
+                           df.at[ndx, 'intercept']))
+        systems = str(df.at[ndx, 'terminal_group_1']) + " - " + str(df.at[ndx, 'terminal_group_2'])
+        train_list_train.append('Train')
+        train_list_sys.append(systems)
+        model_train_test_split_df_list.append({'Model {}'.format(random_seed): 'Train', 'System': systems,
+                                              'Terminal Group 1': df.at[ndx, 'terminal_group_1'],
+                                              'Terminal Group 2': df.at[ndx, 'terminal_group_2']})
+    
+    #model_train_test_split_df_list.append({'System': *train_list_sys})
+    #model_train_test_split_df_list.append({'Model {}'.format(random_seed): *train_list_train})
+
+
+    prediction_results['test_data'] = test_list
+    prediction_results['train_data'] = train_list
+    prediction_results['Model Number'] = random_seed
+    model_train_test_split_df = pd.DataFrame(model_train_test_split_df_list)
+    model_train_test_split_df.sort_values(by='System').to_csv("./model_{}_summary_test_train_andrew.csv".format(random_seed))
+    model_train_test_split_df.to_html("./model_{}_summary_test_train_andrew.html".format(random_seed))
+    #pprint.pprint(model_train_test_split_df.sort_values(by='System'))
+    return prediction_results
+
+
+def main():
+    parser = argparse.ArgumentParser(description='RF model for COF and'\
+            'Intercept prediction.')
+    parser.add_argument('--smi1', '-s1', type=str, default='C(=O)N',
+            help='smiles string for one monolayer')
+    parser.add_argument('--smi2', '-s2', type=str, default='O',
+            help='smiles string for other monolayer')
+    parser.add_argument('--model', type=int, default=43,
+            help='random seed for the training split')
+    parser.add_argument('--path', '-p', type=str, default='..',
+            help='relative path to the data sets')
+    parser.add_argument('--signac', '-sig', type=str, default=None,
+            help='path to signac workspace to store results of prediction')
+    parser.add_argument('--modelname', type=str, default=None,
+            help='model name to associate with random seed'\
+            'if none passed name will be the str(--model)')
+    parser.add_argument('--barcodeseed', '-b', type=int, default=None,
+            help='random seed to vary the descriptors values')
+    parser.add_argument('--varydescriptors', type=bool, default=None,
+            help='randomly vary the rdkit descriptors?')
+    parser.add_argument('--varysignificant', type=bool, default=None,
+            help='random seed to vary the descriptors values')
+
+    args = parser.parse_args()
+    
+    predicted = predict(args.smi1, args.smi2, args.model, args.path,
+            args.barcodeseed, args.varydescriptors, args.varysignificant)
+    #print(predicted)
+    #pprint.pprint({**vars(args), **predicted})
+    if args.signac:
+        barcode_project = signac.get_project(root=args.signac)
+        if args.modelname is None:
+            args.modelname = str(args.model)
+
+        # add a statepoint for each system
+        barcode_project.open_job({**vars(args), **predicted})
+
+if __name__=="__main__":
+    main()
