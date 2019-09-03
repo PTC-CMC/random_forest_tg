@@ -13,28 +13,29 @@ The recommended installation instructions are as follows:
 #### Clone this repository
 
 ```
->> git clone https://github.com/summeraz/random_forest_tg.git
+>> git clone https://github.com/PTC-CMC/random_forest_tg.git
 ```
 
 #### Create a new Anaconda environment
 
-`>> conda create --name myconda --file random_forest_tg/req.txt -c conda-forge -c omnia python=3.5`
+`>> conda env create -f environment-macos.yml`
 
-#### Activate the environment
+`>> conda activate screening35`
 
-`>> source activate myconda`
+`>> pip install -r requirements-macos.txt`
+
 
 #### Download data from MD screening
 
 ```
-git clone https://github.com/summeraz/terminal_group_screening.git
-git clone https://github.com/summeraz/terminal_groups_mixed.git
+git clone https://github.com/PTC-CMC/terminal_group_screening.git
+git clone https://github.com/PTC-CMC/terminal_groups_mixed.git
 ```
 
 #### Install atools-ml package
 
 ```
-git clone https://github.com/summeraz/atools_ml.git
+git clone https://github.com/PTC-CMC/atools_ml.git
 cd atools_ml
 pip install .
 cd ..

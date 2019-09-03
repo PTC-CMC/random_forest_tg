@@ -1,0 +1,5 @@
+-e git+git@github.com:PTC-CMC/atools.git@caa89f99a07c84be4c457378138105100eaa9dfb#egg=atools
+-e git+git@github.com:PTC-CMC/atools_ml.git@3aeb28a1b9eee8b3bc81d001b24342fd4e0ed35e#egg=atools_ml
+-e git+git@github.com:mosdef-hub/foyer.git@1aa97bbebed22c94ad8d9d68486fbdbe7a3bd6d7#egg=foyer
+-e git+git@github.com:mosdef-hub/mbuild.git@fa2bc651823d8c0a93cac8721e0abf10a7b5e168#egg=mbuild
+signac-flow==0.7.1
