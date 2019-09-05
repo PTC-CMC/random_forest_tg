@@ -3,8 +3,7 @@
 This work is associated with the manuscript 
 "Examining Chemistry-Property Relationships in 
 Lubricating Monolayer Films through Molecular Dynamics Screening" currently under review,
- 
-Authored by Andrew Z. Summers, Justin B. Gilmer, Christopher R. Iacovella, 
+authored by Andrew Z. Summers, Justin B. Gilmer, Christopher R. Iacovella, 
 Peter T. Cummings, and Clare McCabe at Vanderbilt University.
 
 ### Installation
