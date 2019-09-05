@@ -1,5 +1,12 @@
 ## Random forest models for predicting the coefficient of friction and adhesion for systems of two contacting functionalized monolayers.
 
+This work is associated with the manuscript 
+"Examining Chemistry-Property Relationships in 
+Lubricating Monolayer Films through Molecular Dynamics Screening" currently under review,
+ 
+Authored by Andrew Z. Summers, Justin B. Gilmer, Christopher R. Iacovella, 
+Peter T. Cummings, and Clare McCabe at Vanderbilt University.
+
 ### Installation
 
 Use of this model requires several Python packages to be installed, as well
