@@ -24,6 +24,8 @@ The recommended installation instructions are as follows:
 
 #### Create a new Anaconda environment
 
+**NOTE: This environment is only meant for MacOS, as certain packages like `appnope` are MacOS specific**
+
 `>> conda env create -f environment-macos.yml`
 
 `>> conda activate screening35`
